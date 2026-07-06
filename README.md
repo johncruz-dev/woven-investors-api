@@ -22,8 +22,6 @@ php artisan test
 
 ## API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
 | POST | `/api/v1/import` | Upload CSV file (`file` field) |
 | GET | `/api/v1/metrics/average-age` | Average investor age |
 | GET | `/api/v1/metrics/average-investment-amount` | Average investment amount |
@@ -31,7 +29,7 @@ php artisan test
 | GET | `/api/v1/investors` | Paginated investor list |
 | GET | `/api/v1/investors?format=csv` | Export as CSV |
 
-**CSV columns:** `investor_id,name,age,investment_amount,investment_date`  
+**CSV columns:** `investor_id,name,age,investment_amount,investment_date` 
 **Date format:** `DD-MM-YYYY`
 
 **Import example (Windows):**
