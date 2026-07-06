@@ -14,6 +14,15 @@ php artisan serve
 
 Configure MySQL in `.env` if needed (SQLite works for local dev).
 
+## Web UI
+
+Open `http://localhost:8000` in your browser. The dashboard lets you:
+
+- Upload and import a CSV file
+- View metrics (average age, average investment, total investments)
+- Browse paginated investors
+- Export investors as CSV
+
 ## Tests
 
 ```bash
