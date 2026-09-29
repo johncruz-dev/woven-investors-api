@@ -4,6 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if ($apiBearerToken)
+        <meta name="api-bearer-token" content="{{ $apiBearerToken }}">
+    @endif
+    @if ($apiKey)
+        <meta name="api-key" content="{{ $apiKey }}">
+    @endif
     <title>Investors Dashboard</title>
     <style>
         :root {
@@ -363,7 +369,7 @@
             <div class="table-header">
                 <h2>Investors</h2>
                 <div style="display:flex;gap:0.5rem;">
-                    <a href="/api/v1/investors?format=csv" class="btn btn-secondary hidden" id="export-btn" download>Export CSV</a>
+                    <button type="button" class="btn btn-secondary hidden" id="export-btn">Export CSV</button>
                 </div>
             </div>
 
@@ -405,6 +411,8 @@
 
     <script>
         const API = '/api/v1';
+        const apiBearerToken = document.querySelector('meta[name="api-bearer-token"]')?.content || '';
+        const apiKey = document.querySelector('meta[name="api-key"]')?.content || '';
         let currentPage = 1;
         let hasData = false;
         let perPage = 10;
@@ -435,10 +443,22 @@
             }).format(value);
         }
 
+        function buildApiHeaders(extra = {}) {
+            const headers = { 'Accept': 'application/json', ...extra };
+
+            if (apiBearerToken) {
+                headers['Authorization'] = `Bearer ${apiBearerToken}`;
+            } else if (apiKey) {
+                headers['X-Api-Key'] = apiKey;
+            }
+
+            return headers;
+        }
+
         async function fetchJson(url, options = {}) {
             const response = await fetch(url, {
-                headers: { 'Accept': 'application/json' },
                 ...options,
+                headers: buildApiHeaders(options.headers || {}),
             });
 
             const data = await response.json().catch(() => ({}));
@@ -604,6 +624,32 @@
             if (hasData) {
                 currentPage = 1;
                 loadInvestors(1);
+            }
+        });
+
+        exportBtn.addEventListener('click', async () => {
+            exportBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API}/investors?format=csv`, {
+                    headers: buildApiHeaders({ Accept: 'text/csv' }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'investors.csv';
+                link.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                showAlert(error.message, 'error');
+            } finally {
+                exportBtn.disabled = false;
             }
         });
 

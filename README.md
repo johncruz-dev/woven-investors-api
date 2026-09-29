@@ -60,4 +60,43 @@ curl.exe -X POST http://localhost:8000/api/v1/import -F "file=@investors_with_da
 - `investment_amount` in the list API = sum of all investments per investor
 - Average investment amount = mean across all investment records
 - Re-importing the same CSV upserts existing data
-- Authentication not implemented
+
+## Security
+
+Security features are **disabled by default** so local development works unchanged. Enable them via `.env` when deploying.
+
+### Authentication
+
+Set `SECURITY_API_AUTH_REQUIRED=true`, then authenticate each request with either:
+
+| Method | Header |
+|--------|--------|
+| API key | `X-Api-Key: your-secret-key` |
+| Sanctum token | `Authorization: Bearer {token}` |
+
+Generate a Sanctum token:
+
+```bash
+php artisan security:create-api-token user@example.com "import-cli"
+```
+
+For the web dashboard, set `SECURITY_DASHBOARD_BEARER_TOKEN` or `SECURITY_DASHBOARD_API_KEY` so browser requests include credentials.
+
+### Rate limiting
+
+| Endpoint group | Default limit | Env variable |
+|----------------|---------------|--------------|
+| Read (metrics, list) | 120/min | `SECURITY_RATE_LIMIT_READ` |
+| Import | 10/min | `SECURITY_RATE_LIMIT_IMPORT` |
+
+Limits are keyed by authenticated user, API key, or client IP.
+
+### Upload hardening
+
+- MIME and size validation (`SECURITY_UPLOAD_MAX_KB`, default 10 MB)
+- Content sniffing rejects binary/script payloads
+- Row cap (`SECURITY_UPLOAD_MAX_ROWS`, default 50,000)
+
+### Response headers
+
+When `SECURITY_HEADERS_ENABLED=true` (default), responses include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and HSTS on HTTPS.

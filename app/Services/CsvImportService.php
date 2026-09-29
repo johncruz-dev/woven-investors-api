@@ -56,6 +56,7 @@ class CsvImportService
         $importedInvestors = 0;
         $importedInvestments = 0;
         $chunk = [];
+        $maxRows = config('security.upload.max_rows', 50000);
 
         while (! $fileObject->eof()) {
             $row = $fileObject->fgetcsv();
@@ -64,8 +65,15 @@ class CsvImportService
                 continue;
             }
 
-            $chunk[] = $this->parseRow($row);
             $importedInvestments++;
+
+            if ($importedInvestments > $maxRows) {
+                throw new InvalidArgumentException(
+                    "CSV exceeds the maximum allowed row count of {$maxRows}."
+                );
+            }
+
+            $chunk[] = $this->parseRow($row);
 
             if (count($chunk) >= self::CHUNK_SIZE) {
                 $importedInvestors += $this->persistChunk($chunk);

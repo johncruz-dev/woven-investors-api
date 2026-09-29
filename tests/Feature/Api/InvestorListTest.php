@@ -18,12 +18,13 @@ class InvestorListTest extends TestCase
             'name' => 'Daniel Nelson',
             'age' => 28,
         ]);
-
+        
         Investment::factory()->create([
             'investor_id' => $investor->id,
             'amount' => 100,
             'investment_date' => '2024-01-01',
         ]);
+
         Investment::factory()->create([
             'investor_id' => $investor->id,
             'amount' => 50,
@@ -61,3 +62,4 @@ class InvestorListTest extends TestCase
         $this->assertStringContainsString('Daniel Nelson', $response->streamedContent());
     }
 }
+
