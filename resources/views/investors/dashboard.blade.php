@@ -42,6 +42,11 @@
 
         header {
             margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
         }
 
         header h1 {
@@ -52,6 +57,40 @@
 
         header p {
             color: var(--muted);
+        }
+
+        .user-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background: #f8fafc;
         }
 
         .card {
@@ -335,21 +374,40 @@
 <body>
     <div class="container">
         <header>
-            <h1>Investors Dashboard</h1>
-            <p>Import CSV data and view investor metrics</p>
+            <div>
+                <h1>Investors Dashboard</h1>
+                <p>Import CSV data and view investor metrics</p>
+            </div>
+            @if ($user)
+                <div class="user-bar">
+                    <span>{{ $user->name }}</span>
+                    <span class="role-badge">{{ $user->role->label() }}</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="btn-logout">Sign out</button>
+                    </form>
+                </div>
+            @endif
         </header>
 
         <div id="alert" class="alert" role="alert"></div>
 
-        <section class="card">
+        @if ($canImport)
+        <section class="card" id="import-section">
             <h2>Import CSV</h2>
             <form id="import-form" class="upload-row">
                 <input type="file" id="csv-file" name="file" accept=".csv,.txt" required>
                 <button type="submit" class="btn btn-primary" id="import-btn">Upload & Import</button>
             </form>
         </section>
+        @else
+        <section class="card">
+            <h2>Read-only access</h2>
+            <p style="color:var(--muted);font-size:0.9rem;">Your viewer role can browse metrics and investors. Ask an admin to import CSV data.</p>
+        </section>
+        @endif
 
-        <section id="results-section" class="hidden">
+        <section id="results-section" class="{{ $authRequired ? '' : 'hidden' }}">
         <section class="metrics" id="metrics">
             <div class="metric-card">
                 <div class="label">Average Age</div>
@@ -413,8 +471,11 @@
         const API = '/api/v1';
         const apiBearerToken = document.querySelector('meta[name="api-bearer-token"]')?.content || '';
         const apiKey = document.querySelector('meta[name="api-key"]')?.content || '';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const canImport = @json($canImport);
+        const autoLoad = @json((bool) $authRequired);
         let currentPage = 1;
-        let hasData = false;
+        let hasData = autoLoad;
         let perPage = 10;
         let lastMeta = null;
 
@@ -444,7 +505,15 @@
         }
 
         function buildApiHeaders(extra = {}) {
-            const headers = { 'Accept': 'application/json', ...extra };
+            const headers = {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...extra,
+            };
+
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+            }
 
             if (apiBearerToken) {
                 headers['Authorization'] = `Bearer ${apiBearerToken}`;
@@ -457,11 +526,17 @@
 
         async function fetchJson(url, options = {}) {
             const response = await fetch(url, {
+                credentials: 'same-origin',
                 ...options,
                 headers: buildApiHeaders(options.headers || {}),
             });
 
             const data = await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                throw new Error('Unauthenticated');
+            }
 
             if (!response.ok) {
                 const message = data.message
@@ -585,39 +660,41 @@
             exportBtn.classList.remove('hidden');
         }
 
-        importForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        if (importForm) {
+            importForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
 
-            const fileInput = document.getElementById('csv-file');
-            if (!fileInput.files.length) return;
+                const fileInput = document.getElementById('csv-file');
+                if (!fileInput.files.length) return;
 
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
 
-            importBtn.disabled = true;
-            importBtn.innerHTML = '<span class="spinner"></span> Importing…';
+                importBtn.disabled = true;
+                importBtn.innerHTML = '<span class="spinner"></span> Importing…';
 
-            try {
-                const data = await fetchJson(`${API}/import`, {
-                    method: 'POST',
-                    body: formData,
-                });
+                try {
+                    const data = await fetchJson(`${API}/import`, {
+                        method: 'POST',
+                        body: formData,
+                    });
 
-                showAlert(
-                    `${data.message} (${data.data.investors_upserted} investors, ${data.data.investments_upserted} investments)`
-                );
+                    showAlert(
+                        `${data.message} (${data.data.investors_upserted} investors, ${data.data.investments_upserted} investments)`
+                    );
 
-                fileInput.value = '';
-                currentPage = 1;
-                showResults();
-                await refreshAll();
-            } catch (error) {
-                showAlert(error.message, 'error');
-            } finally {
-                importBtn.disabled = false;
-                importBtn.textContent = 'Upload & Import';
-            }
-        });
+                    fileInput.value = '';
+                    currentPage = 1;
+                    showResults();
+                    await refreshAll();
+                } catch (error) {
+                    showAlert(error.message, 'error');
+                } finally {
+                    importBtn.disabled = false;
+                    importBtn.textContent = 'Upload & Import';
+                }
+            });
+        }
 
         perPageSelect.addEventListener('change', () => {
             perPage = parseInt(perPageSelect.value, 10);
@@ -632,8 +709,14 @@
 
             try {
                 const response = await fetch(`${API}/investors?format=csv`, {
+                    credentials: 'same-origin',
                     headers: buildApiHeaders({ Accept: 'text/csv' }),
                 });
+
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
 
                 if (!response.ok) {
                     throw new Error('Export failed');
@@ -652,6 +735,11 @@
                 exportBtn.disabled = false;
             }
         });
+
+        if (autoLoad) {
+            showResults();
+            refreshAll().catch((error) => showAlert(error.message, 'error'));
+        }
 
     </script>
 </body>

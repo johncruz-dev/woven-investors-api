@@ -12,11 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
         $middleware->append(\App\Http\Middleware\AddSecurityHeaders::class);
 
         $middleware->alias([
             'api.access' => \App\Http\Middleware\EnsureApiAccess::class,
+            'dashboard.access' => \App\Http\Middleware\EnsureDashboardAccess::class,
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\InvalidArgumentException $e, $request) {

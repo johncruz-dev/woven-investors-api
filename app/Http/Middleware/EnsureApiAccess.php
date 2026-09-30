@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,15 +13,21 @@ class EnsureApiAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! config('security.api.auth_required', false)) {
+        if (! config('security.auth_required', false)) {
             return $next($request);
         }
 
         if ($this->authenticateViaApiKey($request)) {
+            $request->attributes->set('authenticated_via_api_key', true);
+
             return $next($request);
         }
 
-        if ($this->authenticateViaSanctum($request)) {
+        if ($this->authenticateViaSession($request)) {
+            return $next($request);
+        }
+
+        if ($this->authenticateViaSanctumToken($request)) {
             return $next($request);
         }
 
@@ -54,7 +61,20 @@ class EnsureApiAccess
         return hash_equals($configuredKey, $providedKey);
     }
 
-    private function authenticateViaSanctum(Request $request): bool
+    private function authenticateViaSession(Request $request): bool
+    {
+        $user = Auth::guard('web')->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $request->setUserResolver(fn () => $user);
+
+        return true;
+    }
+
+    private function authenticateViaSanctumToken(Request $request): bool
     {
         if (! config('security.api.allow_sanctum_tokens', true)) {
             return false;

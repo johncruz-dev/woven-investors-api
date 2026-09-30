@@ -4,17 +4,56 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | API Authentication
+    | Application Authentication Gate
     |--------------------------------------------------------------------------
     |
-    | When enabled, all /api/v1 routes require either a valid Sanctum bearer
-    | token or a matching X-Api-Key header. Disabled by default so local
-    | development and existing integrations keep working unchanged.
+    | When enabled, the dashboard requires login and API routes require a
+    | session, Sanctum bearer token, or X-Api-Key. Defaults to true outside
+    | local/testing so non-local environments are protected by default.
     |
     */
 
+    'auth_required' => filter_var(
+        env(
+            'SECURITY_AUTH_REQUIRED',
+            ! in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
+        ),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allow Public Registration
+    |--------------------------------------------------------------------------
+    |
+    | New accounts always receive the viewer role. Disable in production if
+    | you only want seeded / invited users.
+    |
+    */
+
+    'registration_enabled' => filter_var(
+        env('SECURITY_REGISTRATION_ENABLED', true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Authentication
+    |--------------------------------------------------------------------------
+    */
+
     'api' => [
-        'auth_required' => env('SECURITY_API_AUTH_REQUIRED', false),
+        // Legacy alias — prefer SECURITY_AUTH_REQUIRED
+        'auth_required' => filter_var(
+            env(
+                'SECURITY_API_AUTH_REQUIRED',
+                env(
+                    'SECURITY_AUTH_REQUIRED',
+                    ! in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
+                )
+            ),
+            FILTER_VALIDATE_BOOLEAN
+        ),
         'key' => env('SECURITY_API_KEY'),
         'allow_sanctum_tokens' => env('SECURITY_ALLOW_SANCTUM_TOKENS', true),
         'log_failed_attempts' => env('SECURITY_LOG_FAILED_AUTH', true),
@@ -57,8 +96,8 @@ return [
     | Dashboard Credentials
     |--------------------------------------------------------------------------
     |
-    | When API auth is required, the dashboard injects these credentials into
-    | page metadata so same-origin browser requests continue to work.
+    | Optional static credentials for machine/dashboard use. Prefer session
+    | login for humans; use these only when needed for automation.
     |
     */
 

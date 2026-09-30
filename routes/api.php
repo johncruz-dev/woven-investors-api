@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('api.access')->group(function () {
     Route::post('/import', [ImportController::class, 'store'])
-        ->middleware('throttle:api-import');
+        ->middleware(['throttle:api-import', 'role:admin']);
 
-    Route::middleware('throttle:api-read')->group(function () {
+    Route::middleware(['throttle:api-read', 'role:admin,viewer'])->group(function () {
         Route::get('/metrics/average-age', [InvestorMetricsController::class, 'averageAge']);
         Route::get('/metrics/average-investment-amount', [InvestorMetricsController::class, 'averageInvestmentAmount']);
         Route::get('/metrics/total-investments', [InvestorMetricsController::class, 'totalInvestments']);

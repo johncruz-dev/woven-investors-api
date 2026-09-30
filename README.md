@@ -8,20 +8,28 @@ Laravel API for importing investor CSV data and serving it via REST endpoints.
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
+php artisan migrate --seed
 php artisan serve
 ```
 
 Configure MySQL in `.env` if needed (SQLite works for local dev).
 
+**Seeded users (password: `password`):**
+
+| Email | Role |
+|-------|------|
+| `admin@example.com` | Admin (can import) |
+| `viewer@example.com` | Viewer (read-only) |
+
 ## Web UI
 
-Open `http://localhost:8000` in your browser. The dashboard lets you:
+Open `http://localhost:8000` in your browser.
 
-- Upload and import a CSV file
-- View metrics (average age, average investment, total investments)
-- Browse paginated investors
-- Export investors as CSV
+- `/login` and `/register` for session auth
+- Dashboard: metrics, paginated investors, CSV export
+- Admins can upload CSV; viewers see a read-only dashboard
+
+With `SECURITY_AUTH_REQUIRED=false` (local default), the dashboard stays open without login.
 
 ## Tests
 
@@ -31,14 +39,14 @@ php artisan test
 
 ## API
 
-| POST | `/api/v1/import` | Upload CSV file (`file` field) |
+| POST | `/api/v1/import` | Upload CSV (`admin` only when auth is on) |
 | GET | `/api/v1/metrics/average-age` | Average investor age |
 | GET | `/api/v1/metrics/average-investment-amount` | Average investment amount |
 | GET | `/api/v1/metrics/total-investments` | Total investment count |
 | GET | `/api/v1/investors` | Paginated investor list |
 | GET | `/api/v1/investors?format=csv` | Export as CSV |
 
-**CSV columns:** `investor_id,name,age,investment_amount,investment_date` 
+**CSV columns:** `investor_id,name,age,investment_amount,investment_date`  
 **Date format:** `DD-MM-YYYY`
 
 **Import example (Windows):**
@@ -61,42 +69,55 @@ curl.exe -X POST http://localhost:8000/api/v1/import -F "file=@investors_with_da
 - Average investment amount = mean across all investment records
 - Re-importing the same CSV upserts existing data
 
-## Security
+## Auth & Security
 
-Security features are **disabled by default** so local development works unchanged. Enable them via `.env` when deploying.
+### Defaults
 
-### Authentication
+| Environment | Auth required |
+|-------------|---------------|
+| `local` / `testing` | Off (unless `SECURITY_AUTH_REQUIRED=true`) |
+| staging / production | **On** by default |
 
-Set `SECURITY_API_AUTH_REQUIRED=true`, then authenticate each request with either:
+When auth is required:
 
-| Method | Header |
-|--------|--------|
-| API key | `X-Api-Key: your-secret-key` |
-| Sanctum token | `Authorization: Bearer {token}` |
+- Dashboard redirects guests to `/login`
+- API needs a **session cookie** (Sanctum SPA), **Bearer token**, or **`X-Api-Key`**
+- **Admin** can import; **admin + viewer** can read
+- Self-registration creates **viewer** accounts only
 
-Generate a Sanctum token:
+### Enable locally
 
-```bash
-php artisan security:create-api-token user@example.com "import-cli"
+```env
+SECURITY_AUTH_REQUIRED=true
+SECURITY_REGISTRATION_ENABLED=true
 ```
 
-For the web dashboard, set `SECURITY_DASHBOARD_BEARER_TOKEN` or `SECURITY_DASHBOARD_API_KEY` so browser requests include credentials.
+Then visit `/login` with a seeded user, or register a viewer.
 
-### Rate limiting
+### API credentials
 
-| Endpoint group | Default limit | Env variable |
-|----------------|---------------|--------------|
-| Read (metrics, list) | 120/min | `SECURITY_RATE_LIMIT_READ` |
+| Method | How |
+|--------|-----|
+| Session (browser) | Log in via `/login` — cookie auth on same origin |
+| API key | `X-Api-Key: your-secret` (`SECURITY_API_KEY`) |
+| Sanctum token | `Authorization: Bearer {token}` |
+
+```bash
+php artisan security:create-api-token admin@example.com "import-cli"
+```
+
+### Roles
+
+| Role | Dashboard | Import | Read APIs |
+|------|-----------|--------|-----------|
+| Admin | Full | Yes | Yes |
+| Viewer | Read-only | No | Yes |
+
+### Rate limiting & uploads
+
+| Endpoint group | Default | Env |
+|----------------|---------|-----|
+| Read | 120/min | `SECURITY_RATE_LIMIT_READ` |
 | Import | 10/min | `SECURITY_RATE_LIMIT_IMPORT` |
 
-Limits are keyed by authenticated user, API key, or client IP.
-
-### Upload hardening
-
-- MIME and size validation (`SECURITY_UPLOAD_MAX_KB`, default 10 MB)
-- Content sniffing rejects binary/script payloads
-- Row cap (`SECURITY_UPLOAD_MAX_ROWS`, default 50,000)
-
-### Response headers
-
-When `SECURITY_HEADERS_ENABLED=true` (default), responses include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and HSTS on HTTPS.
+Upload limits: `SECURITY_UPLOAD_MAX_KB`, `SECURITY_UPLOAD_MAX_ROWS`. Response security headers are on by default (`SECURITY_HEADERS_ENABLED`).
