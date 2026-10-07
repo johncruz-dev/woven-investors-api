@@ -230,7 +230,11 @@ class LearningPlatformRolesTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('education.admin.reports.index'))
             ->assertOk()
-            ->assertSee('users');
+            ->assertSee('Platform reports')
+            ->assertSee('Users by role')
+            ->assertSee('Top courses by enrollment')
+            ->assertSee('Pending grading')
+            ->assertSee('Open support tickets');
 
         $this->actingAs($this->admin)
             ->post(route('education.admin.subscriptions.store'), [

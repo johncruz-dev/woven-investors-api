@@ -776,6 +776,19 @@ tr:last-child td { border-bottom: none; }
     font-weight: 600;
 }
 
+.section-title {
+    font-size: 1rem;
+    margin: 0 0 0.85rem;
+    color: var(--text);
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
 .priority-high { color: var(--danger); font-weight: 700; }
 
 .flash,

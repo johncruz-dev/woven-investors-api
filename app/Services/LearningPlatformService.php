@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\Course;
@@ -11,7 +14,9 @@ use App\Models\LessonProgress;
 use App\Models\Message;
 use App\Models\PlatformSetting;
 use App\Models\School;
+use App\Models\Student;
 use App\Models\Subscription;
+use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -333,16 +338,94 @@ class LearningPlatformService
 
     public function adminReport(): array
     {
+        $usersByRole = User::query()
+            ->select('role', DB::raw('count(*) as total'))
+            ->groupBy('role')
+            ->pluck('total', 'role');
+
+        $ticketBreakdown = SupportTicket::query()
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $gradedScores = AssignmentSubmission::query()
+            ->where('status', 'graded')
+            ->whereNotNull('score');
+
+        $topCourses = Course::query()
+            ->with('teacher:id,name')
+            ->withCount([
+                'enrollments as active_enrollments_count' => fn ($query) => $query->where('status', 'active'),
+                'lessons as published_lessons_count' => fn ($query) => $query->where('is_published', true),
+                'assignments as published_assignments_count' => fn ($query) => $query->where('is_published', true),
+            ])
+            ->orderByDesc('active_enrollments_count')
+            ->orderBy('title')
+            ->limit(8)
+            ->get();
+
+        $pendingGrading = AssignmentSubmission::query()
+            ->with(['assignment:id,title,course_id', 'assignment.course:id,title', 'student:id,name'])
+            ->where('status', 'submitted')
+            ->latest('submitted_at')
+            ->limit(8)
+            ->get();
+
+        $openTickets = SupportTicket::query()
+            ->with(['student:id,name', 'assignee:id,name'])
+            ->whereIn('status', [TicketStatus::Open->value, TicketStatus::InProgress->value])
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $activeSubscriptions = Subscription::query()->where('status', 'active');
+
         return [
-            'users' => User::query()->count(),
-            'students' => User::query()->where('role', 'student')->count(),
-            'teachers' => User::query()->where('role', 'teacher')->count(),
-            'courses' => Course::query()->count(),
-            'enrollments' => Enrollment::query()->count(),
-            'submissions' => AssignmentSubmission::query()->count(),
-            'graded_submissions' => AssignmentSubmission::query()->where('status', 'graded')->count(),
-            'active_subscriptions' => Subscription::query()->where('status', 'active')->count(),
-            'open_messages_unread' => Message::query()->whereNull('read_at')->count(),
+            'overview' => [
+                'users' => User::query()->count(),
+                'active_users' => User::query()->where('is_active', true)->count(),
+                'roster_students' => Student::query()->count(),
+                'courses' => Course::query()->count(),
+                'published_courses' => Course::query()->where('status', 'published')->count(),
+                'active_enrollments' => Enrollment::query()->where('status', 'active')->count(),
+            ],
+            'learning' => [
+                'lessons_completed' => LessonProgress::query()->where('completed', true)->count(),
+                'submissions' => AssignmentSubmission::query()->count(),
+                'pending_grading' => AssignmentSubmission::query()->where('status', 'submitted')->count(),
+                'graded_submissions' => (clone $gradedScores)->count(),
+                'average_score' => round((float) ((clone $gradedScores)->avg('score') ?? 0), 1),
+                'unread_messages' => Message::query()->whereNull('read_at')->count(),
+            ],
+            'support' => [
+                'open_tickets' => (int) (
+                    ($ticketBreakdown[TicketStatus::Open->value] ?? 0)
+                    + ($ticketBreakdown[TicketStatus::InProgress->value] ?? 0)
+                ),
+                'resolved_tickets' => (int) ($ticketBreakdown[TicketStatus::Resolved->value] ?? 0),
+                'high_priority_open' => SupportTicket::query()
+                    ->where('priority', TicketPriority::High->value)
+                    ->whereIn('status', [TicketStatus::Open->value, TicketStatus::InProgress->value])
+                    ->count(),
+                'total_tickets' => SupportTicket::query()->count(),
+            ],
+            'subscriptions' => [
+                'active' => (clone $activeSubscriptions)->count(),
+                'monthly_revenue' => round((float) ((clone $activeSubscriptions)->sum('amount') ?? 0), 2),
+                'total' => Subscription::query()->count(),
+            ],
+            'users_by_role' => collect(UserRole::cases())->map(fn (UserRole $role) => [
+                'role' => $role->label(),
+                'total' => (int) ($usersByRole[$role->value] ?? 0),
+            ])->all(),
+            'ticket_breakdown' => collect(TicketStatus::cases())->map(fn (TicketStatus $status) => [
+                'status' => $status->label(),
+                'value' => $status->value,
+                'total' => (int) ($ticketBreakdown[$status->value] ?? 0),
+            ])->all(),
+            'top_courses' => $topCourses,
+            'pending_grading' => $pendingGrading,
+            'open_tickets' => $openTickets,
         ];
     }
 
