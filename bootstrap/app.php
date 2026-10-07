@@ -12,24 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->statefulApi();
         $middleware->append(\App\Http\Middleware\AddSecurityHeaders::class);
 
         $middleware->alias([
-            'api.access' => \App\Http\Middleware\EnsureApiAccess::class,
-            'dashboard.access' => \App\Http\Middleware\EnsureDashboardAccess::class,
-            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'education.access' => \App\Http\Middleware\EnsureEducationAccess::class,
+            'education.staff' => \App\Http\Middleware\EnsureEducationStaff::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo(fn () => route('dashboard'));
+        $middleware->redirectUsersTo(fn () => route('education.dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\InvalidArgumentException $e, $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'message' => $e->getMessage(),
-                ], 422);
-            }
-        });
+        //
     })->create();

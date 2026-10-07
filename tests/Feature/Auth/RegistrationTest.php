@@ -25,10 +25,10 @@ class RegistrationTest extends TestCase
         $this->get(route('register'))
             ->assertOk()
             ->assertSee('Create account')
-            ->assertSee('viewer role');
+            ->assertSee('student role');
     }
 
-    public function test_new_users_can_register_as_viewers(): void
+    public function test_new_users_can_register_as_students(): void
     {
         $response = $this->post(route('register'), [
             'name' => 'New User',
@@ -37,15 +37,15 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('education.dashboard'));
         $this->assertAuthenticated();
 
         $user = User::query()->where('email', 'new@example.com')->first();
 
         $this->assertNotNull($user);
-        $this->assertSame(UserRole::Viewer, $user->role);
-        $this->assertTrue($user->isViewer());
-        $this->assertFalse($user->canImport());
+        $this->assertSame(UserRole::Student, $user->role);
+        $this->assertTrue($user->isStudent());
+        $this->assertTrue($user->canAccessEducation());
     }
 
     public function test_registration_cannot_assign_admin_role(): void
@@ -60,7 +60,7 @@ class RegistrationTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'hacker@example.com',
-            'role' => UserRole::Viewer->value,
+            'role' => UserRole::Student->value,
         ]);
 
         $this->assertDatabaseMissing('users', [
@@ -123,11 +123,11 @@ class RegistrationTest extends TestCase
 
     public function test_authenticated_users_are_redirected_away_from_register(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $this->actingAs($user)
             ->get(route('register'))
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('education.dashboard'));
     }
 
     public function test_registration_screen_is_unavailable_when_disabled(): void

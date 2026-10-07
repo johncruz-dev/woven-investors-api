@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -40,7 +39,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('education.dashboard'));
     }
 
     public function test_users_can_authenticate_with_remember_me(): void
@@ -106,11 +105,11 @@ class AuthenticationTest extends TestCase
 
     public function test_authenticated_users_are_redirected_away_from_login(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $this->actingAs($user)
             ->get(route('login'))
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('education.dashboard'));
     }
 
     public function test_users_can_logout(): void
@@ -130,67 +129,23 @@ class AuthenticationTest extends TestCase
 
     public function test_login_redirects_to_intended_url(): void
     {
-        User::factory()->create([
+        User::factory()->admin()->create([
             'email' => 'admin@example.com',
         ]);
 
-        $this->get('/');
+        $this->get(route('education.dashboard'));
 
         $response = $this->post(route('login'), [
             'email' => 'admin@example.com',
             'password' => 'password',
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('education.dashboard'));
         $this->assertAuthenticated();
     }
 
-    public function test_dashboard_requires_authentication_when_auth_is_required(): void
+    public function test_home_requires_authentication(): void
     {
-        $this->get(route('dashboard'))->assertRedirect(route('login'));
-    }
-
-    public function test_authenticated_viewers_can_view_read_only_dashboard(): void
-    {
-        $user = User::factory()->viewer()->create([
-            'name' => 'Viewer Person',
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('Investors Dashboard')
-            ->assertSee('Viewer Person')
-            ->assertSee('Viewer')
-            ->assertSee('Read-only access')
-            ->assertSee('Sign out')
-            ->assertDontSee('id="import-form"', false)
-            ->assertDontSee('Upload & Import');
-    }
-
-    public function test_authenticated_admins_see_import_controls(): void
-    {
-        $user = User::factory()->admin()->create([
-            'name' => 'Admin Person',
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('Admin Person')
-            ->assertSee('Admin')
-            ->assertSee('Import CSV')
-            ->assertDontSee('Read-only access');
-    }
-
-    public function test_dashboard_is_public_when_auth_is_not_required(): void
-    {
-        Config::set('security.auth_required', false);
-
-        $this->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('Investors Dashboard')
-            ->assertSee('Import CSV')
-            ->assertDontSee('Sign out');
+        $this->get('/')->assertRedirect(route('login'));
     }
 }

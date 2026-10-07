@@ -1,10 +1,10 @@
 @extends('layouts.auth')
 
-@section('title', 'Sign in — Woven Investors')
+@section('title', 'Sign in — Woven')
 
 @section('content')
     <h1>Sign in</h1>
-    <p class="subtitle">Access the investors dashboard</p>
+    <p class="subtitle">Access your education workspace</p>
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
@@ -30,11 +30,11 @@
             Remember me
         </label>
 
-        <button type="submit" class="btn">Sign in</button>
+        <button type="submit" class="btn btn-primary">Sign in</button>
     </form>
 
     @if (config('security.registration_enabled'))
-        <p class="footer">
+        <p class="auth-footer">
             No account?
             <a href="{{ route('register') }}">Create one</a>
         </p>

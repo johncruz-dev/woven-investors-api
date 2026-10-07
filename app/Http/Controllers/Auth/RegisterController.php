@@ -35,7 +35,7 @@ class RegisterController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'role' => UserRole::Viewer,
+            'role' => UserRole::Student,
         ]);
 
         event(new Registered($user));
@@ -44,6 +44,6 @@ class RegisterController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('education.dashboard');
     }
 }

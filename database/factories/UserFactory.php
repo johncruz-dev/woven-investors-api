@@ -25,7 +25,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'role' => UserRole::Viewer,
+            'role' => UserRole::Student,
             'remember_token' => Str::random(10),
         ];
     }
@@ -44,10 +44,24 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function viewer(): static
+    public function teacher(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => UserRole::Viewer,
+            'role' => UserRole::Teacher,
+        ]);
+    }
+
+    public function counselor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::Counselor,
+        ]);
+    }
+
+    public function student(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::Student,
         ]);
     }
 }

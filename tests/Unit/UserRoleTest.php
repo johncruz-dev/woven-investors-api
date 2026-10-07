@@ -16,19 +16,45 @@ class UserRoleTest extends TestCase
         $role = UserRole::Admin;
 
         $this->assertSame('admin', $role->value);
-        $this->assertSame('Admin', $role->label());
-        $this->assertTrue($role->canImport());
-        $this->assertTrue($role->canRead());
+        $this->assertSame('Administrator', $role->label());
+        $this->assertTrue($role->isEducationStaff());
+        $this->assertTrue($role->canAccessEducation());
+        $this->assertTrue($role->canManageUsersAndPermissions());
+        $this->assertTrue($role->canConfigurePlatformSettings());
+        $this->assertTrue($role->canGenerateReports());
+        $this->assertTrue($role->canManagePaymentsAndSubscriptions());
+        $this->assertTrue($role->canMaintainSecurity());
+        $this->assertTrue($role->canCreateCourses());
     }
 
-    public function test_viewer_role_permissions(): void
+    public function test_teacher_and_student_education_permissions(): void
     {
-        $role = UserRole::Viewer;
+        $teacher = UserRole::Teacher;
+        $this->assertSame('Teacher / Instructor', $teacher->label());
+        $this->assertTrue($teacher->isEducationStaff());
+        $this->assertTrue($teacher->canImportRoster());
+        $this->assertTrue($teacher->canCreateCourses());
+        $this->assertTrue($teacher->canUploadLearningMaterials());
+        $this->assertTrue($teacher->canManageCourseStudents());
+        $this->assertTrue($teacher->canCreateAssessments());
+        $this->assertTrue($teacher->canGradeAssignments());
+        $this->assertTrue($teacher->canMonitorStudentPerformance());
+        $this->assertFalse($teacher->canManageUsersAndPermissions());
 
-        $this->assertSame('viewer', $role->value);
-        $this->assertSame('Viewer', $role->label());
-        $this->assertFalse($role->canImport());
-        $this->assertTrue($role->canRead());
+        $this->assertTrue(UserRole::Counselor->canManageTickets());
+        $this->assertFalse(UserRole::Counselor->canImportRoster());
+
+        $student = UserRole::Student;
+        $this->assertFalse($student->isEducationStaff());
+        $this->assertTrue($student->canAccessEducation());
+        $this->assertTrue($student->canManageOwnProfile());
+        $this->assertTrue($student->canEnrollInCourses());
+        $this->assertTrue($student->canViewLessonsAndAssignments());
+        $this->assertTrue($student->canSubmitHomework());
+        $this->assertTrue($student->canTrackLearningProgress());
+        $this->assertTrue($student->canMessageTeachers());
+        $this->assertFalse($student->canImportRoster());
+        $this->assertFalse($student->canCreateCourses());
     }
 
     public function test_user_admin_helpers(): void
@@ -36,31 +62,16 @@ class UserRoleTest extends TestCase
         $user = User::factory()->admin()->create();
 
         $this->assertTrue($user->isAdmin());
-        $this->assertFalse($user->isViewer());
-        $this->assertTrue($user->canImport());
-        $this->assertTrue($user->canRead());
+        $this->assertFalse($user->isStudent());
         $this->assertTrue($user->hasRole(UserRole::Admin));
         $this->assertTrue($user->hasRole('admin'));
-        $this->assertFalse($user->hasRole('viewer'));
+        $this->assertFalse($user->hasRole('student'));
     }
 
-    public function test_user_viewer_helpers(): void
-    {
-        $user = User::factory()->viewer()->create();
-
-        $this->assertFalse($user->isAdmin());
-        $this->assertTrue($user->isViewer());
-        $this->assertFalse($user->canImport());
-        $this->assertTrue($user->canRead());
-        $this->assertTrue($user->hasRole(UserRole::Viewer));
-        $this->assertTrue($user->hasRole('viewer'));
-        $this->assertFalse($user->hasRole('admin'));
-    }
-
-    public function test_factory_defaults_to_viewer(): void
+    public function test_factory_defaults_to_student(): void
     {
         $user = User::factory()->create();
 
-        $this->assertSame(UserRole::Viewer, $user->role);
+        $this->assertSame(UserRole::Student, $user->role);
     }
 }

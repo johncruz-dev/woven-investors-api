@@ -1,10 +1,10 @@
 @extends('layouts.auth')
 
-@section('title', 'Register — Woven Investors')
+@section('title', 'Register — Woven')
 
 @section('content')
     <h1>Create account</h1>
-    <p class="subtitle">New accounts start with the viewer role</p>
+    <p class="subtitle">New accounts start with the student role</p>
 
     <form method="POST" action="{{ route('register') }}">
         @csrf
@@ -38,10 +38,10 @@
             <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password">
         </div>
 
-        <button type="submit" class="btn">Create account</button>
+        <button type="submit" class="btn btn-primary">Create account</button>
     </form>
 
-    <p class="footer">
+    <p class="auth-footer">
         Already registered?
         <a href="{{ route('login') }}">Sign in</a>
     </p>

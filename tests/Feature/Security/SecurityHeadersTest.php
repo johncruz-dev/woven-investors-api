@@ -11,7 +11,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_it_adds_security_headers_to_responses(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/login');
 
         $response->assertOk();
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
