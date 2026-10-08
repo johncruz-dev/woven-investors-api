@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\AddSecurityHeaders::class);
 
         $middleware->alias([
+            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'education.access' => \App\Http\Middleware\EnsureEducationAccess::class,
             'education.staff' => \App\Http\Middleware\EnsureEducationStaff::class,
         ]);

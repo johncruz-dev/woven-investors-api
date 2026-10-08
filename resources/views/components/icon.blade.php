@@ -17,6 +17,7 @@ $paths = [
     'menu' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>',
     'close' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>',
     'collapse' => '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5h6v15h-6A1.5 1.5 0 0 1 3 18V6A1.5 1.5 0 0 1 4.5 4.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 8.25 10.5 12l3.75 3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 12H21"/>',
+    'grading' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15v12.75A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5V6.75z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75V4.5A1.5 1.5 0 0 1 9.75 3h4.5A1.5 1.5 0 0 1 15.75 4.5v2.25"/>',
 ];
 @endphp
 

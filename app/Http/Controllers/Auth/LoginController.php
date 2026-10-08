@@ -29,6 +29,19 @@ class LoginController extends Controller
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user !== null && ! $user->is_active) {
+            Auth::guard('web')->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => __('Your account has been deactivated. Contact an administrator.'),
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('education.dashboard'));

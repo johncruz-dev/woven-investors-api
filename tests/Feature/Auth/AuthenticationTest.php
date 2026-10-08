@@ -148,4 +148,40 @@ class AuthenticationTest extends TestCase
     {
         $this->get('/')->assertRedirect(route('login'));
     }
+
+    public function test_inactive_users_cannot_authenticate(): void
+    {
+        User::factory()->inactive()->create([
+            'email' => 'inactive@example.com',
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => 'inactive@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('email');
+        $this->assertStringContainsString(
+            'deactivated',
+            session('errors')->first('email')
+        );
+    }
+
+    public function test_inactive_users_are_logged_out_from_education_routes(): void
+    {
+        $user = User::factory()->student()->create([
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        $user->update(['is_active' => false]);
+
+        $this->get(route('education.dashboard'))
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
 }

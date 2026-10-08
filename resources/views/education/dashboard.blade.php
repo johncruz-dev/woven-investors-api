@@ -87,6 +87,9 @@
         <h2 style="font-size:1.1rem;">Quick links</h2>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <a class="btn btn-primary" href="{{ route('education.courses.index') }}">Courses</a>
+            @if ($user->canGradeAssignments())
+                <a class="btn btn-secondary" href="{{ route('education.assignments.queue') }}">Grading queue</a>
+            @endif
             <a class="btn btn-secondary" href="{{ route('education.tickets.create') }}">New support ticket</a>
             @if ($user->canManageUsersAndPermissions())
                 <a class="btn btn-secondary" href="{{ route('education.admin.users.index') }}">Admin panel</a>

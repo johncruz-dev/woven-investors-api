@@ -27,9 +27,14 @@
             <a href="{{ route('education.dashboard') }}" class="{{ request()->routeIs('education.dashboard') ? 'active' : '' }}">
                 <x-icon name="home" class="nav-icon" /><span class="nav-label">Dashboard</span>
             </a>
-            <a href="{{ route('education.courses.index') }}" class="{{ request()->routeIs('education.courses.*') || request()->routeIs('education.lessons.*') || request()->routeIs('education.assignments.*') ? 'active' : '' }}">
+            <a href="{{ route('education.courses.index') }}" class="{{ request()->routeIs('education.courses.*') || request()->routeIs('education.lessons.*') || request()->routeIs('education.assignments.show') ? 'active' : '' }}">
                 <x-icon name="courses" class="nav-icon" /><span class="nav-label">Courses</span>
             </a>
+            @if ($user->canGradeAssignments())
+                <a href="{{ route('education.assignments.queue') }}" class="{{ request()->routeIs('education.assignments.queue') ? 'active' : '' }}">
+                    <x-icon name="grading" class="nav-icon" /><span class="nav-label">Grading</span>
+                </a>
+            @endif
             @if ($user->canMessageTeachers())
                 <a href="{{ route('education.messages.index') }}" class="{{ request()->routeIs('education.messages.*') ? 'active' : '' }}">
                     <x-icon name="messages" class="nav-icon" /><span class="nav-label">Messages</span>
@@ -91,5 +96,6 @@
     </div>
 
     @include('partials.sidebar-script')
+    @stack('scripts')
 </body>
 </html>

@@ -654,8 +654,6 @@ textarea:disabled {
 }
 
 .control-inline,
-.per-page-wrap select,
-.table-footer select,
 td select,
 .toolbar select {
     width: auto;
@@ -787,6 +785,164 @@ tr:last-child td { border-bottom: none; }
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1rem;
     margin-bottom: 1.25rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem 1rem;
+}
+
+.subscription-form { max-width: 960px; }
+
+.subscription-row {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.subscription-row:last-of-type { border-bottom: none; }
+
+.subscription-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.subscription-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: end;
+}
+
+.subscription-edit select,
+.subscription-edit input {
+    width: auto;
+    min-width: 7.5rem;
+    min-height: 38px;
+}
+
+.status-active { background: var(--success-soft); color: var(--success); }
+.status-canceled { background: #f1f5f9; color: #475569; }
+.status-past_due { background: var(--warning-soft); color: var(--warning); }
+.status-expired { background: var(--danger-soft); color: var(--danger); }
+
+.grading-card { margin-bottom: 1rem; }
+
+.grading-content {
+    white-space: pre-wrap;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--control-radius);
+    padding: 0.85rem 1rem;
+    margin: 0.75rem 0;
+}
+
+.grading-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+    margin-top: 0.75rem;
+}
+
+.grading-form .field {
+    margin-bottom: 0;
+    min-width: 140px;
+}
+
+.grading-form input[type="number"] {
+    width: 7rem;
+}
+
+.user-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.user-edit-row select {
+    width: auto;
+    min-width: 8rem;
+}
+
+.pagination-footer {
+    margin-top: 1.25rem;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal.is-open {
+    display: flex;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 480px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+    max-height: min(90vh, 720px);
+    overflow: auto;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.modal-close {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--control-border);
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    background: #f8fafc;
+}
+
+.modal-body {
+    padding: 1.15rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
 }
 
 .priority-high { color: var(--danger); font-weight: 700; }
@@ -960,36 +1116,87 @@ body.auth-body {
     border-top: 1px solid var(--border);
 }
 
+.pagination-footer .pagination-summary,
+.pagination-footer .pagination-summary.muted,
+.pagination-footer .per-page-wrap,
+.pagination-footer .per-page-wrap label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.pagination-footer .pagination-summary strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
 .per-page-wrap {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--muted);
+    gap: 0.4rem;
 }
 
-.per-page-wrap label {
-    margin: 0;
-    font-weight: 600;
-    color: var(--muted);
+.per-page-wrap select,
+.table-footer .per-page-wrap select {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 3.25rem;
+    min-height: 1.75rem;
+    height: 1.75rem;
+    padding: 0 1.6rem 0 0.45rem;
+    border: 1px solid var(--control-border);
+    border-radius: 5px;
+    background-color: #fff;
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
 }
 
 .pagination-nav {
     display: flex;
-    gap: 0.35rem;
+    gap: 0.3rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .page-btn {
-    min-width: 2.2rem;
-    height: 2.2rem;
-    padding: 0 0.5rem;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
     border: 1px solid var(--control-border);
-    border-radius: 6px;
+    border-radius: 5px;
     background: #fff;
+    color: var(--text);
     cursor: pointer;
     font: inherit;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: middle;
+    user-select: none;
+}
+
+a.page-btn,
+button.page-btn,
+span.page-btn:not([aria-disabled="true"]):not(.ellipsis) {
+    cursor: pointer;
+}
+
+.page-btn:hover {
+    background: #f8fafc;
+    text-decoration: none;
 }
 
 .page-btn.active {
@@ -998,8 +1205,25 @@ body.auth-body {
     color: #fff;
 }
 
-.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.page-btn.ellipsis { border: none; background: transparent; cursor: default; }
+.page-btn.active:hover {
+    background: var(--primary-hover);
+    color: #fff;
+}
+
+.page-btn[aria-disabled="true"],
+.page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.page-btn.ellipsis {
+    border: none;
+    background: transparent;
+    cursor: default;
+    width: auto;
+    min-width: 1.25rem;
+}
 
 .spinner {
     display: inline-block;

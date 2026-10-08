@@ -175,16 +175,34 @@ class LearningPlatformRolesTest extends TestCase
 
         $submission = $assignment->submissions()->first();
 
+        $this->actingAs($this->teacher)
+            ->get(route('education.assignments.queue'))
+            ->assertOk()
+            ->assertSee('Grading queue')
+            ->assertSee('Quiz 1')
+            ->assertSee('Answers here')
+            ->assertSee($this->student->name);
+
+        $this->actingAs($this->student)
+            ->get(route('education.assignments.queue'))
+            ->assertForbidden();
+
         $this->actingAs($this->teacher)->post(route('education.submissions.grade', $submission), [
             'score' => 18,
             'feedback' => 'Great work',
-        ])->assertRedirect();
+            'redirect_to' => 'queue',
+        ])->assertRedirect(route('education.assignments.queue'));
 
         $this->assertDatabaseHas('assignment_submissions', [
             'id' => $submission->id,
             'score' => 18,
             'status' => 'graded',
         ]);
+
+        $this->actingAs($this->teacher)
+            ->get(route('education.assignments.queue'))
+            ->assertOk()
+            ->assertSee('No pending submissions');
 
         $this->actingAs($this->teacher)
             ->get(route('education.courses.show', $course))
@@ -194,6 +212,13 @@ class LearningPlatformRolesTest extends TestCase
 
     public function test_admin_can_manage_users_settings_reports_subscriptions_and_security(): void
     {
+        $this->actingAs($this->admin)
+            ->get(route('education.admin.users.index', ['per_page' => 10]))
+            ->assertOk()
+            ->assertSee('Create user')
+            ->assertSee('create-user-modal')
+            ->assertSee('Rows');
+
         $this->actingAs($this->admin)
             ->post(route('education.admin.users.store'), [
                 'name' => 'New Teacher',
@@ -240,15 +265,42 @@ class LearningPlatformRolesTest extends TestCase
             ->post(route('education.admin.subscriptions.store'), [
                 'user_id' => $this->student->id,
                 'plan' => 'premium',
+                'billing_period' => 'yearly',
                 'amount' => 49.99,
                 'status' => 'active',
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('subscriptions', [
-            'user_id' => $this->student->id,
-            'plan' => 'premium',
-        ]);
+        $subscription = Subscription::query()
+            ->where('user_id', $this->student->id)
+            ->where('plan', 'premium')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($subscription);
+        $this->assertSame('active', $subscription->status->value);
+        $this->assertNotNull($subscription->ends_at);
+
+        $this->actingAs($this->admin)
+            ->post(route('education.admin.subscriptions.extend', $subscription), [
+                'billing_period' => 'monthly',
+            ])
+            ->assertRedirect();
+
+        $extendedEndsAt = $subscription->fresh()->ends_at;
+        $this->assertTrue($extendedEndsAt->greaterThan($subscription->ends_at));
+
+        $this->actingAs($this->admin)
+            ->post(route('education.admin.subscriptions.cancel', $subscription))
+            ->assertRedirect();
+
+        $this->assertSame('canceled', $subscription->fresh()->status->value);
+
+        $this->actingAs($this->admin)
+            ->get(route('education.admin.subscriptions.index'))
+            ->assertOk()
+            ->assertSee('Create subscription')
+            ->assertSee('Active revenue');
 
         $this->actingAs($this->admin)
             ->get(route('education.admin.security.index'))

@@ -31,7 +31,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'education.access'])->prefix('education')->name('education.')->group(function () {
+Route::middleware(['auth', 'active', 'education.access'])->prefix('education')->name('education.')->group(function () {
     Route::get('/', [EducationDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -58,6 +58,7 @@ Route::middleware(['auth', 'education.access'])->prefix('education')->name('educ
     Route::get('/materials/{material}/download', [MaterialController::class, 'download'])->name('materials.download');
 
     Route::post('/courses/{course}/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::get('/grading', [AssignmentController::class, 'gradingQueue'])->name('assignments.queue');
     Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
     Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit');
     Route::post('/submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('submissions.grade');
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'education.access'])->prefix('education')->name('educ
         Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
         Route::post('/subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
         Route::put('/subscriptions/{subscription}', [SubscriptionController::class, 'update'])->name('subscriptions.update');
+        Route::post('/subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
+        Route::post('/subscriptions/{subscription}/extend', [SubscriptionController::class, 'extend'])->name('subscriptions.extend');
 
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
         Route::post('/security/users/{managedUser}/revoke-tokens', [SecurityController::class, 'revokeTokens'])->name('security.revoke-tokens');

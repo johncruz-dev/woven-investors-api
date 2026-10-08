@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\SubscriptionPlan;
+use App\Enums\SubscriptionStatus;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
@@ -191,6 +193,42 @@ class LearningPlatformService
         return $submission->fresh(['student', 'assignment']);
     }
 
+    public function pendingGradingQueue(User $grader, ?int $courseId = null, int $perPage = 20)
+    {
+        abort_unless($grader->canGradeAssignments(), 403);
+
+        return AssignmentSubmission::query()
+            ->with([
+                'student:id,name,email',
+                'assignment:id,course_id,title,max_points,due_at',
+                'assignment.course:id,title,teacher_id,code',
+            ])
+            ->where('status', 'submitted')
+            ->whereHas('assignment.course', function ($query) use ($grader, $courseId) {
+                if (! $grader->isAdmin()) {
+                    $query->where('teacher_id', $grader->id);
+                }
+
+                if ($courseId) {
+                    $query->where('id', $courseId);
+                }
+            })
+            ->latest('submitted_at')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    public function coursesForGradingQueue(User $grader)
+    {
+        $query = Course::query()->orderBy('title');
+
+        if (! $grader->isAdmin()) {
+            $query->where('teacher_id', $grader->id);
+        }
+
+        return $query->get(['id', 'title', 'code']);
+    }
+
     public function markLessonComplete(Lesson $lesson, User $student): LessonProgress
     {
         return LessonProgress::query()->updateOrCreate(
@@ -378,7 +416,7 @@ class LearningPlatformService
             ->limit(8)
             ->get();
 
-        $activeSubscriptions = Subscription::query()->where('status', 'active');
+        $activeSubscriptions = Subscription::query()->where('status', SubscriptionStatus::Active);
 
         return [
             'overview' => [
@@ -447,5 +485,101 @@ class LearningPlatformService
         }
 
         abort(403, 'You do not have access to this course.');
+    }
+
+    public function refreshExpiredSubscriptions(): int
+    {
+        return Subscription::query()
+            ->where('status', SubscriptionStatus::Active)
+            ->whereNotNull('ends_at')
+            ->where('ends_at', '<', now())
+            ->update(['status' => SubscriptionStatus::Expired]);
+    }
+
+    public function createSubscription(array $data): Subscription
+    {
+        $plan = SubscriptionPlan::tryFrom($data['plan']);
+        $period = $data['billing_period'] ?? 'yearly';
+        $startsAt = isset($data['starts_at']) ? \Carbon\Carbon::parse($data['starts_at']) : now();
+        $endsAt = $data['ends_at'] ?? null;
+
+        if ($endsAt === null) {
+            $endsAt = $period === 'monthly'
+                ? $startsAt->copy()->addMonth()
+                : $startsAt->copy()->addYear();
+        }
+
+        $amount = $data['amount'] ?? null;
+        if ($amount === null && $plan !== null) {
+            $amount = $period === 'monthly' ? $plan->monthlyAmount() : $plan->yearlyAmount();
+        }
+
+        return Subscription::create([
+            'user_id' => $data['user_id'],
+            'plan' => $data['plan'],
+            'status' => $data['status'] ?? SubscriptionStatus::Active->value,
+            'amount' => $amount ?? 0,
+            'currency' => $data['currency'] ?? 'GBP',
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+        ]);
+    }
+
+    public function updateSubscription(Subscription $subscription, array $data): Subscription
+    {
+        $payload = [
+            'plan' => $data['plan'] ?? $subscription->plan,
+            'status' => $data['status'] ?? $subscription->status->value,
+            'amount' => $data['amount'] ?? $subscription->amount,
+            'starts_at' => $data['starts_at'] ?? $subscription->starts_at,
+            'ends_at' => array_key_exists('ends_at', $data) ? $data['ends_at'] : $subscription->ends_at,
+        ];
+
+        if (($payload['status'] === SubscriptionStatus::Active->value || $payload['status'] === SubscriptionStatus::Active)
+            && $payload['ends_at']
+            && \Carbon\Carbon::parse($payload['ends_at'])->isPast()) {
+            $payload['status'] = SubscriptionStatus::Expired;
+        }
+
+        $subscription->update($payload);
+
+        return $subscription->refresh();
+    }
+
+    public function cancelSubscription(Subscription $subscription): Subscription
+    {
+        $subscription->update([
+            'status' => SubscriptionStatus::Canceled,
+            'ends_at' => now(),
+        ]);
+
+        return $subscription->refresh();
+    }
+
+    public function extendSubscription(Subscription $subscription, string $period = 'yearly'): Subscription
+    {
+        $base = $subscription->ends_at && $subscription->ends_at->isFuture()
+            ? $subscription->ends_at->copy()
+            : now();
+
+        $subscription->update([
+            'status' => SubscriptionStatus::Active,
+            'ends_at' => $period === 'monthly' ? $base->addMonth() : $base->addYear(),
+        ]);
+
+        return $subscription->refresh();
+    }
+
+    public function subscriptionMetrics(): array
+    {
+        $query = Subscription::query();
+
+        return [
+            'active' => (clone $query)->where('status', SubscriptionStatus::Active)->count(),
+            'canceled' => (clone $query)->where('status', SubscriptionStatus::Canceled)->count(),
+            'past_due' => (clone $query)->where('status', SubscriptionStatus::PastDue)->count(),
+            'expired' => (clone $query)->where('status', SubscriptionStatus::Expired)->count(),
+            'revenue' => round((float) ((clone $query)->where('status', SubscriptionStatus::Active)->sum('amount') ?? 0), 2),
+        ];
     }
 }

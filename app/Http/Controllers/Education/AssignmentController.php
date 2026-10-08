@@ -35,6 +35,20 @@ class AssignmentController extends Controller
         return back()->with('status', 'Assessment created.');
     }
 
+    public function gradingQueue(Request $request): View
+    {
+        abort_unless($request->user()->canGradeAssignments(), 403);
+
+        $courseId = $request->integer('course_id') ?: null;
+
+        return view('education.assignments.queue', [
+            'user' => $request->user(),
+            'submissions' => $this->learningPlatformService->pendingGradingQueue($request->user(), $courseId),
+            'courses' => $this->learningPlatformService->coursesForGradingQueue($request->user()),
+            'courseId' => $courseId,
+        ]);
+    }
+
     public function show(Request $request, Assignment $assignment): View
     {
         $assignment->load(['course', 'submissions.student']);
@@ -90,6 +104,14 @@ class AssignmentController extends Controller
         ]);
 
         $this->learningPlatformService->gradeSubmission($submission, $request->user(), $validated);
+
+        if ($request->input('redirect_to') === 'queue') {
+            return redirect()
+                ->route('education.assignments.queue', array_filter([
+                    'course_id' => $request->integer('course_id') ?: null,
+                ]))
+                ->with('status', 'Submission graded.');
+        }
 
         return back()->with('status', 'Submission graded.');
     }

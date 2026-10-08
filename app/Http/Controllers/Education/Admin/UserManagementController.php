@@ -17,7 +17,16 @@ class UserManagementController extends Controller
     {
         abort_unless($request->user()->canManageUsersAndPermissions(), 403);
 
-        $users = User::query()->orderBy('role')->orderBy('name')->paginate(20);
+        $perPage = (int) $request->integer('per_page', 10);
+        if (! in_array($perPage, [10, 20, 50], true)) {
+            $perPage = 10;
+        }
+
+        $users = User::query()
+            ->orderBy('role')
+            ->orderBy('name')
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view('education.admin.users.index', [
             'user' => $request->user(),
@@ -61,7 +70,12 @@ class UserManagementController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
+        $wasActive = $managedUser->is_active;
         $managedUser->update($validated);
+
+        if ($wasActive && ! $managedUser->fresh()->is_active) {
+            $managedUser->tokens()->delete();
+        }
 
         return back()->with('status', 'User permissions updated.');
     }
