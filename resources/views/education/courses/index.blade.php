@@ -5,6 +5,7 @@
 @section('content')
     <div class="toolbar">
         <div class="page-header" style="margin-bottom:0;">
+            <p class="eyebrow">Learning</p>
             <h1>Courses</h1>
             <p class="subtitle">
                 @if ($user->canCreateCourses() && ! $user->isStudent())
@@ -21,15 +22,22 @@
 
     <div class="card">
         @forelse ($courses as $course)
-            <div class="card-list-item">
-                <div>
-                    <a href="{{ route('education.courses.show', $course) }}"><strong>{{ $course->title }}</strong></a>
+            <a href="{{ route('education.courses.show', $course) }}" class="course-row">
+                <div class="course-row-main">
+                    <strong>{{ $course->title }}</strong>
                     <div class="muted">{{ $course->code ? $course->code.' · ' : '' }}{{ $course->teacher->name ?? 'Instructor' }}</div>
                 </div>
-                <div class="muted">{{ $course->enrollments_count ?? $course->enrollments->count() }} enrolled</div>
-            </div>
+                <div class="course-row-meta">
+                    <span class="status status-graded">{{ $course->enrollments_count ?? $course->enrollments->count() }} enrolled</span>
+                </div>
+            </a>
         @empty
-            <p class="empty">No courses yet.</p>
+            <div class="empty-state compact">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <x-icon name="courses" class="icon" />
+                </div>
+                <p class="empty">No courses yet.</p>
+            </div>
         @endforelse
         <div class="pagination">{{ $courses->links('pagination::simple-default') }}</div>
     </div>

@@ -42,6 +42,7 @@ class UserRoleTest extends TestCase
         $this->assertFalse($teacher->canManageUsersAndPermissions());
 
         $this->assertTrue(UserRole::Counselor->canManageTickets());
+        $this->assertTrue(UserRole::Counselor->canMessageTeachers());
         $this->assertFalse(UserRole::Counselor->canImportRoster());
 
         $student = UserRole::Student;

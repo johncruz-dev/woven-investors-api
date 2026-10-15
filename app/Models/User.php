@@ -222,4 +222,33 @@ class User extends Authenticatable
     {
         return $this->enrollments()->where('course_id', $course->id)->where('status', 'active')->exists();
     }
+
+    public function hasCustomAvatar(): bool
+    {
+        return filled($this->avatar_path);
+    }
+
+    public function avatarUrl(): string
+    {
+        if ($this->hasCustomAvatar()) {
+            // Use asset() so the URL matches the current host/port (Storage::url
+            // is tied to APP_URL and breaks under `php artisan serve`).
+            return asset('storage/'.$this->avatar_path).'?v='.$this->updated_at?->timestamp;
+        }
+
+        return asset('images/default-avatar.svg');
+    }
+
+    public function initials(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->name)) ?: [];
+
+        $initials = collect($parts)
+            ->filter()
+            ->take(2)
+            ->map(fn (string $part) => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+
+        return $initials !== '' ? $initials : '?';
+    }
 }

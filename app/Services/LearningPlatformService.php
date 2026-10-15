@@ -365,13 +365,53 @@ class LearningPlatformService
 
     public function sendMessage(User $sender, User $recipient, array $data): Message
     {
+        if (! $sender->canMessageTeachers() || ! $recipient->canMessageTeachers()) {
+            throw new InvalidArgumentException('Messaging is not available for this user.');
+        }
+
+        if ($sender->id === $recipient->id) {
+            throw new InvalidArgumentException('You cannot message yourself.');
+        }
+
+        if (! $recipient->is_active) {
+            throw new InvalidArgumentException('That recipient account is inactive.');
+        }
+
         return Message::create([
             'sender_id' => $sender->id,
             'recipient_id' => $recipient->id,
             'course_id' => $data['course_id'] ?? null,
             'subject' => $data['subject'],
             'body' => $data['body'],
+            'read_at' => null,
         ]);
+    }
+
+    public function messageRecipientsFor(User $user)
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->where('id', '!=', $user->id)
+            ->whereIn('role', [
+                UserRole::Student->value,
+                UserRole::Teacher->value,
+                UserRole::Counselor->value,
+                UserRole::Admin->value,
+            ])
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'role']);
+    }
+
+    public function unreadMessageCount(User $user): int
+    {
+        if (! $user->canMessageTeachers()) {
+            return 0;
+        }
+
+        return Message::query()
+            ->where('recipient_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
     }
 
     public function adminReport(): array

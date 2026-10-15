@@ -24,8 +24,13 @@ class DashboardController extends Controller
             ? $this->educationSupportService->dashboardMetrics($school)
             : ['students' => 0, 'open_tickets' => 0, 'resolved_tickets' => 0, 'high_priority_open' => 0];
 
+        $perPage = (int) $request->integer('per_page', 10);
+        if (! in_array($perPage, [10, 20, 50], true)) {
+            $perPage = 10;
+        }
+
         $recentTickets = $school
-            ? $this->educationSupportService->paginateTickets($school, $user, null, 5)
+            ? $this->educationSupportService->paginateTickets($school, $user, null, $perPage)
             : null;
 
         $learning = $user->isStudent()

@@ -9,6 +9,7 @@ composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate --seed
+php artisan storage:link
 php artisan serve
 ```
 
@@ -18,8 +19,12 @@ php artisan serve
 |-------|------|
 | `admin@example.com` | Administrator |
 | `teacher@example.com` | Teacher / Instructor |
-| `student@example.com` | Student |
+| `student@example.com` | Student (Alex) |
+| `jordan@example.com` | Student (Jordan) |
+| `sam@example.com` | Student (Sam) |
 | `counselor@example.com` | Counselor (support) |
+
+Seeded demo video lessons appear under **Schedule**. Students can open a lesson and click **Confirm I’ll attend**.
 
 ## User management & roles
 

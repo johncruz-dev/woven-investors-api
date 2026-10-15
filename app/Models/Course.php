@@ -50,6 +50,11 @@ class Course extends Model
         return $this->hasMany(Assignment::class);
     }
 
+    public function scheduledLessons(): HasMany
+    {
+        return $this->hasMany(ScheduledLesson::class);
+    }
+
     public function isPublished(): bool
     {
         return $this->status === 'published';

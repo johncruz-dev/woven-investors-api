@@ -50,19 +50,39 @@ class LearningPlatformRolesTest extends TestCase
 
     public function test_student_can_manage_profile_enroll_submit_and_message(): void
     {
+        Storage::fake('public');
+
+        $avatar = UploadedFile::fake()->createWithContent(
+            'avatar.jpg',
+            base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z'),
+        );
+
         $this->actingAs($this->student)
             ->put(route('education.profile.update'), [
                 'name' => 'Alex Updated',
                 'phone' => '07000000000',
                 'bio' => 'Learner bio',
+                'avatar' => $avatar,
             ])
             ->assertRedirect();
+
+        $this->student->refresh();
 
         $this->assertDatabaseHas('users', [
             'id' => $this->student->id,
             'name' => 'Alex Updated',
             'phone' => '07000000000',
         ]);
+        $this->assertNotNull($this->student->avatar_path);
+        Storage::disk('public')->assertExists($this->student->avatar_path);
+
+        $this->actingAs($this->student)
+            ->get(route('education.profile.edit'))
+            ->assertOk()
+            ->assertSee('Change photo')
+            ->assertSee('default-avatar.svg')
+            ->assertSee('Account details')
+            ->assertSee('Remove photo');
 
         $this->actingAs($this->student)
             ->post(route('education.courses.enroll', $this->course))
@@ -111,7 +131,7 @@ class LearningPlatformRolesTest extends TestCase
         $this->actingAs($this->student)
             ->get(route('education.dashboard'))
             ->assertOk()
-            ->assertSee('My learning')
+            ->assertSee('Welcome back')
             ->assertSee('Course progress')
             ->assertSee($this->course->title)
             ->assertSee('100% lessons');
@@ -122,13 +142,53 @@ class LearningPlatformRolesTest extends TestCase
                 'subject' => 'Question',
                 'body' => 'Can you help with lesson 1?',
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('education.messages.index', ['tab' => 'sent']));
 
         $this->assertDatabaseHas('messages', [
             'sender_id' => $this->student->id,
             'recipient_id' => $this->teacher->id,
             'subject' => 'Question',
+            'read_at' => null,
         ]);
+
+        $this->actingAs($this->student)
+            ->get(route('education.messages.index', ['tab' => 'sent']))
+            ->assertOk()
+            ->assertSee('Question')
+            ->assertSee('Delivered');
+
+        $this->actingAs($this->teacher)
+            ->get(route('education.messages.index'))
+            ->assertOk()
+            ->assertSee('Question')
+            ->assertSee('New')
+            ->assertSee('Can you help with lesson 1?')
+            ->assertSee('nav-badge')
+            ->assertSee('1');
+
+        $this->actingAs($this->teacher)
+            ->get(route('education.dashboard'))
+            ->assertOk()
+            ->assertSee('nav-badge');
+
+        $message = \App\Models\Message::query()
+            ->where('subject', 'Question')
+            ->first();
+
+        $this->actingAs($this->teacher)
+            ->get(route('education.messages.show', $message))
+            ->assertOk()
+            ->assertSee('Can you help with lesson 1?')
+            ->assertSee('Marked as read')
+            ->assertDontSee('nav-badge');
+
+        $this->assertNotNull($message->fresh()->read_at);
+
+        $this->actingAs($this->teacher)
+            ->get(route('education.messages.index'))
+            ->assertOk()
+            ->assertDontSee('nav-badge')
+            ->assertDontSee('>New<', false);
     }
 
     public function test_teacher_can_create_course_lesson_assessment_and_grade(): void

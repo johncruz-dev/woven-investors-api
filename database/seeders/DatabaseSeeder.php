@@ -10,6 +10,8 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\PlatformSetting;
+use App\Models\ScheduledLesson;
+use App\Models\ScheduledLessonAttendance;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\Subscription;
@@ -44,6 +46,16 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Alex Student', 'password' => 'password', 'role' => UserRole::Student, 'is_active' => true, 'bio' => 'Year 11 student']
         );
 
+        $jordanUser = User::query()->firstOrCreate(
+            ['email' => 'jordan@example.com'],
+            ['name' => 'Jordan Lee', 'password' => 'password', 'role' => UserRole::Student, 'is_active' => true, 'bio' => 'Year 10 student']
+        );
+
+        $samUser = User::query()->firstOrCreate(
+            ['email' => 'sam@example.com'],
+            ['name' => 'Sam Rivera', 'password' => 'password', 'role' => UserRole::Student, 'is_active' => true, 'bio' => 'Year 12 student']
+        );
+
         $school = School::query()->firstOrCreate(
             ['slug' => 'woven-academy'],
             ['name' => 'Woven Academy']
@@ -63,22 +75,26 @@ class DatabaseSeeder extends Seeder
         $jordan = Student::query()->firstOrCreate(
             ['school_id' => $school->id, 'external_id' => 'S1002'],
             [
+                'user_id' => $jordanUser->id,
                 'name' => 'Jordan Lee',
                 'email' => 'jordan@example.com',
                 'grade_level' => '10',
                 'status' => 'active',
             ]
         );
+        $jordan->forceFill(['user_id' => $jordanUser->id])->save();
 
-        Student::query()->firstOrCreate(
+        $sam = Student::query()->firstOrCreate(
             ['school_id' => $school->id, 'external_id' => 'S1003'],
             [
+                'user_id' => $samUser->id,
                 'name' => 'Sam Rivera',
                 'email' => 'sam@example.com',
                 'grade_level' => '12',
                 'status' => 'active',
             ]
         );
+        $sam->forceFill(['user_id' => $samUser->id])->save();
 
         SupportTicket::query()->firstOrCreate(
             [
@@ -120,7 +136,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        Lesson::query()->firstOrCreate(
+        $linearLesson = Lesson::query()->firstOrCreate(
             ['course_id' => $course->id, 'title' => 'Linear equations'],
             [
                 'content' => 'Learn how to solve linear equations step by step.',
@@ -129,7 +145,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        Lesson::query()->firstOrCreate(
+        $quadraticLesson = Lesson::query()->firstOrCreate(
             ['course_id' => $course->id, 'title' => 'Quadratic equations'],
             [
                 'content' => 'Introduction to factoring and the quadratic formula.',
@@ -148,10 +164,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        Enrollment::query()->firstOrCreate(
-            ['course_id' => $course->id, 'student_id' => $studentUser->id],
-            ['status' => 'active', 'enrolled_at' => now()]
-        );
+        foreach ([$studentUser, $jordanUser, $samUser] as $enrolledStudent) {
+            Enrollment::query()->firstOrCreate(
+                ['course_id' => $course->id, 'student_id' => $enrolledStudent->id],
+                ['status' => 'active', 'enrolled_at' => now()]
+            );
+        }
 
         Subscription::query()->firstOrCreate(
             ['user_id' => $studentUser->id, 'plan' => 'standard'],
@@ -164,11 +182,96 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $tomorrowLive = now()->addDay()->setTime(10, 0);
+        $liveWorkshop = ScheduledLesson::query()->firstOrCreate(
+            [
+                'course_id' => $course->id,
+                'title' => 'Live video: Linear equations workshop',
+            ],
+            [
+                'teacher_id' => $teacher->id,
+                'lesson_id' => $linearLesson->id,
+                'description' => 'Join the video call after reading Linear equations. Bring 2 questions.',
+                'starts_at' => $tomorrowLive,
+                'ends_at' => $tomorrowLive->copy()->addHour(),
+                'meeting_url' => 'https://meet.google.com/woven-algebra-live',
+                'status' => 'scheduled',
+            ]
+        );
+        $liveWorkshop->forceFill([
+            'teacher_id' => $teacher->id,
+            'lesson_id' => $linearLesson->id,
+            'starts_at' => $tomorrowLive,
+            'ends_at' => $tomorrowLive->copy()->addHour(),
+            'meeting_url' => 'https://meet.google.com/woven-algebra-live',
+            'status' => 'scheduled',
+        ])->save();
+
+        $nextWeek = now()->addDays(3)->setTime(14, 0);
+        $quadraticCall = ScheduledLesson::query()->firstOrCreate(
+            [
+                'course_id' => $course->id,
+                'title' => 'Video call: Quadratics Q&A',
+            ],
+            [
+                'teacher_id' => $teacher->id,
+                'lesson_id' => $quadraticLesson->id,
+                'description' => 'Office-hours style video call for quadratic practice.',
+                'starts_at' => $nextWeek,
+                'ends_at' => $nextWeek->copy()->addMinutes(45),
+                'meeting_url' => 'https://meet.google.com/woven-quadratics-qa',
+                'status' => 'scheduled',
+            ]
+        );
+        $quadraticCall->forceFill([
+            'teacher_id' => $teacher->id,
+            'lesson_id' => $quadraticLesson->id,
+            'starts_at' => $nextWeek,
+            'ends_at' => $nextWeek->copy()->addMinutes(45),
+            'meeting_url' => 'https://meet.google.com/woven-quadratics-qa',
+            'status' => 'scheduled',
+        ])->save();
+
+        $soon = now()->addHour()->seconds(0);
+        $comingUp = ScheduledLesson::query()->firstOrCreate(
+            [
+                'course_id' => $course->id,
+                'title' => 'Coming up: Quick algebra check-in',
+            ],
+            [
+                'teacher_id' => $teacher->id,
+                'lesson_id' => $linearLesson->id,
+                'description' => 'Short check-in call. Confirm attendance if you can join.',
+                'starts_at' => $soon,
+                'ends_at' => $soon->copy()->addMinutes(30),
+                'meeting_url' => 'https://meet.google.com/woven-checkin',
+                'status' => 'scheduled',
+            ]
+        );
+        $comingUp->forceFill([
+            'teacher_id' => $teacher->id,
+            'lesson_id' => $linearLesson->id,
+            'starts_at' => $soon,
+            'ends_at' => $soon->copy()->addMinutes(30),
+            'meeting_url' => 'https://meet.google.com/woven-checkin',
+            'status' => 'scheduled',
+            'reminder_sent_at' => null,
+        ])->save();
+
+        $liveWorkshop->participants()->syncWithoutDetaching([$studentUser->id, $jordanUser->id]);
+        $quadraticCall->participants()->syncWithoutDetaching([$studentUser->id, $samUser->id]);
+        $comingUp->participants()->syncWithoutDetaching([$studentUser->id, $jordanUser->id, $samUser->id]);
+
+        ScheduledLessonAttendance::query()->firstOrCreate(
+            ['scheduled_lesson_id' => $liveWorkshop->id, 'user_id' => $jordanUser->id],
+            ['status' => 'confirmed', 'responded_at' => now()]
+        );
+
         PlatformSetting::setValue('platform_name', 'Woven Education');
         PlatformSetting::setValue('support_email', 'support@woven.example');
         PlatformSetting::setValue('allow_registration', '1');
         PlatformSetting::setValue('maintenance_mode', '0');
 
-        unset($admin);
+        unset($admin, $sam);
     }
 }

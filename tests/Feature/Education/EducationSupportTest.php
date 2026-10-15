@@ -57,16 +57,18 @@ class EducationSupportTest extends TestCase
         $this->actingAs($this->teacher)
             ->get(route('education.dashboard'))
             ->assertOk()
-            ->assertSee('Education support')
-            ->assertSee('Test Academy');
+            ->assertSee('Test Academy')
+            ->assertSee('Quick links');
     }
 
     public function test_staff_can_list_and_view_students(): void
     {
         $this->actingAs($this->teacher)
-            ->get(route('education.students.index'))
+            ->get(route('education.students.index', ['per_page' => 10]))
             ->assertOk()
-            ->assertSee('Alex Student');
+            ->assertSee('Alex Student')
+            ->assertSee('Showing')
+            ->assertSee('Rows');
 
         $this->actingAs($this->teacher)
             ->get(route('education.students.show', $this->student))

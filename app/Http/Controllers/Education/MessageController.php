@@ -9,6 +9,7 @@ use App\Services\LearningPlatformService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use InvalidArgumentException;
 
 class MessageController extends Controller
 {
@@ -21,27 +22,33 @@ class MessageController extends Controller
         abort_unless($request->user()->canMessageTeachers(), 403);
 
         $user = $request->user();
+        $tab = $request->string('tab', 'inbox')->toString();
+        if (! in_array($tab, ['inbox', 'sent'], true)) {
+            $tab = 'inbox';
+        }
+
         $inbox = Message::query()
             ->where('recipient_id', $user->id)
-            ->with(['sender', 'course'])
+            ->with(['sender:id,name,role', 'course:id,title'])
+            ->orderByRaw('CASE WHEN read_at IS NULL THEN 0 ELSE 1 END')
             ->latest()
-            ->paginate(15, ['*'], 'inbox');
+            ->paginate(15, ['*'], 'inbox_page')
+            ->withQueryString();
 
         $sent = Message::query()
             ->where('sender_id', $user->id)
-            ->with(['recipient', 'course'])
+            ->with(['recipient:id,name,role', 'course:id,title'])
             ->latest()
-            ->paginate(15, ['*'], 'sent');
-
-        $recipients = $user->isStudent()
-            ? User::query()->whereIn('role', ['teacher', 'admin'])->where('is_active', true)->orderBy('name')->get()
-            : User::query()->where('role', 'student')->where('is_active', true)->orderBy('name')->get();
+            ->paginate(15, ['*'], 'sent_page')
+            ->withQueryString();
 
         return view('education.messages.index', [
             'user' => $user,
             'inbox' => $inbox,
             'sent' => $sent,
-            'recipients' => $recipients,
+            'tab' => $tab,
+            'recipients' => $this->learningPlatformService->messageRecipientsFor($user),
+            'unreadCount' => $this->learningPlatformService->unreadMessageCount($user),
         ]);
     }
 
@@ -58,9 +65,17 @@ class MessageController extends Controller
 
         $recipient = User::query()->findOrFail($validated['recipient_id']);
 
-        $this->learningPlatformService->sendMessage($request->user(), $recipient, $validated);
+        try {
+            $this->learningPlatformService->sendMessage($request->user(), $recipient, $validated);
+        } catch (InvalidArgumentException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['recipient_id' => $e->getMessage()]);
+        }
 
-        return back()->with('status', 'Message sent.');
+        return redirect()
+            ->route('education.messages.index', ['tab' => 'sent'])
+            ->with('status', 'Message sent. It is now in the recipient inbox.');
     }
 
     public function show(Request $request, Message $message): View
@@ -72,13 +87,15 @@ class MessageController extends Controller
 
         if ($message->recipient_id === $request->user()->id && $message->read_at === null) {
             $message->update(['read_at' => now()]);
+            session()->now('status', 'Marked as read. Unread count updated.');
         }
 
         $message->load(['sender', 'recipient', 'course']);
 
         return view('education.messages.show', [
             'user' => $request->user(),
-            'message' => $message,
+            'message' => $message->fresh(['sender', 'recipient', 'course']),
+            'recipients' => $this->learningPlatformService->messageRecipientsFor($request->user()),
         ]);
     }
 }

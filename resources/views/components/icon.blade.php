@@ -18,6 +18,9 @@ $paths = [
     'close' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>',
     'collapse' => '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5h6v15h-6A1.5 1.5 0 0 1 3 18V6A1.5 1.5 0 0 1 4.5 4.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 8.25 10.5 12l3.75 3.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 12H21"/>',
     'grading' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75"/><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15v12.75A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5V6.75z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75V4.5A1.5 1.5 0 0 1 9.75 3h4.5A1.5 1.5 0 0 1 15.75 4.5v2.25"/>',
+    'camera' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5h1.2l1.05-1.5h6l1.05 1.5h1.2A2.25 2.25 0 0 1 19.5 9.75v6A2.25 2.25 0 0 1 17.25 18H6.75A2.25 2.25 0 0 1 4.5 15.75v-6A2.25 2.25 0 0 1 6.75 7.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25z"/>',
+    'calendar' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 8.25h16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6h15A1.5 1.5 0 0 1 21 7.5v11.25A1.5 1.5 0 0 1 19.5 20.25h-15A1.5 1.5 0 0 1 3 18.75V7.5A1.5 1.5 0 0 1 4.5 6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12h.008v.008H8.25V12zm3.75 0h.008v.008H12V12zm3.75 0h.008v.008H15.75V12z"/>',
+    'bell' => '<path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 1 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/>',
 ];
 @endphp
 

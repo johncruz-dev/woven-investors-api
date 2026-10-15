@@ -19,9 +19,15 @@ class StudentController extends Controller
         $school = $this->educationSupportService->defaultSchool();
         abort_unless($school, 404, 'No school configured. Run the database seeder.');
 
+        $perPage = (int) $request->integer('per_page', 10);
+        if (! in_array($perPage, [10, 20, 50], true)) {
+            $perPage = 10;
+        }
+
         $students = $this->educationSupportService->paginateStudents(
             $school,
             $request->string('q')->toString() ?: null,
+            $perPage,
         );
 
         return view('education.students.index', [

@@ -13,8 +13,10 @@ use App\Http\Controllers\Education\DashboardController as EducationDashboardCont
 use App\Http\Controllers\Education\LessonController;
 use App\Http\Controllers\Education\MaterialController;
 use App\Http\Controllers\Education\MessageController;
+use App\Http\Controllers\Education\NotificationController;
 use App\Http\Controllers\Education\ProfileController;
 use App\Http\Controllers\Education\RosterImportController;
+use App\Http\Controllers\Education\ScheduleController;
 use App\Http\Controllers\Education\StudentController;
 use App\Http\Controllers\Education\TicketController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +68,17 @@ Route::middleware(['auth', 'active', 'education.access'])->prefix('education')->
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
+
+    Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
+    Route::post('/schedule', [ScheduleController::class, 'store'])->name('schedule.store');
+    Route::get('/schedule/{scheduledLesson}', [ScheduleController::class, 'show'])->name('schedule.show');
+    Route::post('/schedule/{scheduledLesson}/confirm', [ScheduleController::class, 'confirm'])->name('schedule.confirm');
+    Route::post('/schedule/{scheduledLesson}/decline', [ScheduleController::class, 'decline'])->name('schedule.decline');
+    Route::delete('/schedule/{scheduledLesson}', [ScheduleController::class, 'destroy'])->name('schedule.destroy');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
 
     Route::middleware('education.staff')->group(function () {
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');

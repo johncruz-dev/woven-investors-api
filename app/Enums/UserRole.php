@@ -78,7 +78,7 @@ enum UserRole: string
     public function canMessageTeachers(): bool
     {
         return match ($this) {
-            self::Student, self::Teacher, self::Admin => true,
+            self::Student, self::Teacher, self::Counselor, self::Admin => true,
             default => false,
         };
     }
